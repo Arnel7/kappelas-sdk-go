@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	kappelas "github.com/kappelas/kappelas-sdk-go"
+	kappelas "github.com/Arnel7/kappelas-sdk-go"
 )
 
 // ─── Fichiers de test en mémoire ─────────────────────────────────────────────

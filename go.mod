@@ -1,4 +1,4 @@
-module github.com/kappelas/kappelas-sdk-go
+module github.com/Arnel7/kappelas-sdk-go
 
 go 1.21
 

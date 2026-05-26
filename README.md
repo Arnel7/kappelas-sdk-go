@@ -1,6 +1,6 @@
 # kappelas-sdk-go
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/kappelas/kappelas-sdk-go.svg)](https://pkg.go.dev/github.com/kappelas/kappelas-sdk-go)
+[![Go Reference](https://pkg.go.dev/badge/github.com/Arnel7/kappelas-sdk-go.svg)](https://pkg.go.dev/github.com/Arnel7/kappelas-sdk-go)
 [![Go version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![GitHub](https://img.shields.io/badge/GitHub-source-181717?logo=github)](https://github.com/Arnel7/kappelas-sdk-go)
@@ -42,7 +42,7 @@ For personal automation (sending messages as yourself), generate an API key from
 ## Install
 
 ```bash
-go get github.com/kappelas/kappelas-sdk-go
+go get github.com/Arnel7/kappelas-sdk-go
 ```
 
 Requires **Go 1.21+**.
@@ -60,7 +60,7 @@ import (
     "context"
     "fmt"
 
-    "github.com/kappelas/kappelas-sdk-go"
+    "github.com/Arnel7/kappelas-sdk-go"
 )
 
 func main() {
@@ -132,7 +132,7 @@ import (
     "io"
     "net/http"
 
-    "github.com/kappelas/kappelas-sdk-go"
+    "github.com/Arnel7/kappelas-sdk-go"
 )
 
 bot := kappelas.NewBot("YOUR_BOT_TOKEN")
