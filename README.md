@@ -93,7 +93,9 @@ func main() {
 me := kappelas.NewUser("sk_...")
 
 me.OnMessage(func(msg *kappelas.Message) {
-    fmt.Printf("[%d] %v: %v\n", msg.ChatID, msg.SenderName, msg.Text)
+    if msg.Text != nil {
+        fmt.Printf("[%d] %s\n", msg.ChatID, *msg.Text)
+    }
 })
 
 me.Start()
@@ -218,18 +220,21 @@ bot := kappelas.NewBot("token",
 #### `Messages.Send(ctx, params)` → `(*SendResult, error)`
 
 ```go
+yes, no := "yes", "no"
+replyTo := int64(123) // optional — ID of the message to reply to
+
 result, err := bot.Messages.Send(ctx, kappelas.SendMessageParams{
     ChatID:    42,
     Text:      "Hello!",
-    ReplyToID: &msgID,   // optional — reply to a message
+    ReplyToID: &replyTo,
     ReplyMarkup: kappelas.InlineKeyboard{
         InlineKeyboard: [][]kappelas.InlineKeyboardButton{{
-            {Text: "Yes", CallbackData: strPtr("yes")},
-            {Text: "No",  CallbackData: strPtr("no")},
+            {Text: "Yes", CallbackData: &yes},
+            {Text: "No",  CallbackData: &no},
         }},
     },
 })
-// → SendResult{MessageID, CreatedAt}
+// → &SendResult{MessageID: ..., CreatedAt: ...}
 ```
 
 #### `Messages.SendPhoto(ctx, params)` → `(*SendMediaResult, error)`
@@ -273,9 +278,10 @@ bot.Messages.Edit(ctx, kappelas.EditMessageParams{
 
 // Edit inline keyboard only
 import "encoding/json"
+done := "done"
 kb, _ := json.Marshal(kappelas.InlineKeyboard{
     InlineKeyboard: [][]kappelas.InlineKeyboardButton{
-        {{Text: "Done ✅", CallbackData: strPtr("done")}},
+        {{Text: "Done ✅", CallbackData: &done}},
     },
 })
 bot.Messages.Edit(ctx, kappelas.EditMessageParams{
