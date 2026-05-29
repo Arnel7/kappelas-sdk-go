@@ -121,10 +121,8 @@ func main() {
 		fmt.Printf("[!] Erreur : %v\n", err)
 	})
 
-	// Capturer les messages entrants pendant les tests (pour tester bot.Reply)
-	var lastMsg *kappelas.Message
+	// Afficher les messages entrants pendant les tests
 	bot.OnMessage(func(msg *kappelas.Message) {
-		lastMsg = msg
 		fmt.Printf("\n[→] Message reçu — chat_id=%d type=%s\n", msg.ChatID, msg.Type)
 	})
 
@@ -334,31 +332,24 @@ func main() {
 
 	// ─── 16. bot.Reply() ─────────────────────────────────────────────────────
 
-	// Envoyer un message, attendre un peu pour le recevoir par WS, puis Reply
-	var replySource *kappelas.SendResult
+	// Envoyer un message puis construire un *Message synthétique depuis le résultat.
+	// Le bot ne reçoit pas ses propres messages via WS, donc on simule l'objet
+	// exactement comme le ferait OnMessage — ce qui suffit pour tester Reply().
 	if r, ok := run("messages.Send() — source pour bot.Reply()", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
 			Text:   "Message source pour tester bot.Reply() 📌",
 		})
 	}).(*kappelas.SendResult); ok && r != nil {
-		replySource = r
-	}
-
-	// Attendre que le WS livre le message (max 3s)
-	if replySource != nil {
-		deadline := time.Now().Add(3 * time.Second)
-		for time.Now().Before(deadline) && lastMsg == nil {
-			time.Sleep(100 * time.Millisecond)
+		synthetic := &kappelas.Message{
+			ID:     r.MessageID,
+			ChatID: chatID,
 		}
-	}
-
-	if lastMsg != nil {
-		run("bot.Reply() — depuis *Message", func() (any, error) {
-			return bot.Reply(ctx, lastMsg, "↩️ Réponse via bot.Reply()")
+		run("bot.Reply() — depuis *Message (reply_to_id auto)", func() (any, error) {
+			return bot.Reply(ctx, synthetic, "↩️ Réponse via bot.Reply()")
 		})
 		run("bot.Reply() — avec inline keyboard", func() (any, error) {
-			return bot.Reply(ctx, lastMsg, "Choix via bot.Reply() :", kappelas.SendMessageParams{
+			return bot.Reply(ctx, synthetic, "Choix via bot.Reply() :", kappelas.SendMessageParams{
 				ReplyMarkup: kappelas.InlineKeyboard{
 					InlineKeyboard: [][]kappelas.InlineKeyboardButton{{
 						{Text: "✅ OK", CallbackData: ptr("reply_ok")},
@@ -366,8 +357,16 @@ func main() {
 				},
 			})
 		})
-	} else {
-		fmt.Println("\n→ bot.Reply() — skipped (no WS message received in time)")
+
+		// CallbackQuery synthétique — Reply sans quote banner
+		cb := &kappelas.CallbackQuery{
+			ChatID:       chatID,
+			SenderID:     "test",
+			CallbackData: "cb_test",
+		}
+		run("bot.Reply() — depuis *CallbackQuery (pas de reply_to_id)", func() (any, error) {
+			return bot.Reply(ctx, cb, "Réponse callback via bot.Reply()")
+		})
 	}
 
 	// ─── 17. Webhook info ────────────────────────────────────────────────────
