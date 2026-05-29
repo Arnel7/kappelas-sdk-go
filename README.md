@@ -94,7 +94,7 @@ func main() {
     bot := kappelas.NewBot("YOUR_BOT_TOKEN")
 
     bot.OnMessage(func(msg *kappelas.Message) {
-        bot.Reply(ctx, msg, "Echo: "+*msg.Text)
+        bot.Reply(ctx, msg, "Echo: "+msg.GetText())
     })
 
     bot.OnCallbackQuery(func(cb *kappelas.CallbackQuery) {
@@ -112,9 +112,7 @@ func main() {
 me := kappelas.NewUser("sk_...")
 
 me.OnMessage(func(msg *kappelas.Message) {
-    if msg.Text != nil {
-        fmt.Printf("[%d] %s\n", msg.ChatID, *msg.Text)
-    }
+    fmt.Printf("[%d] %s\n", msg.ChatID, msg.GetText())
 })
 
 me.Start()
@@ -234,7 +232,7 @@ bot.OnMessage(func(msg *kappelas.Message) {
     msg.ChatType         // *ChatType     — "private" | "group" | "channel" (may be nil for history)
     msg.SenderID         // *string       — UUID of the sender (nil for system messages)
     msg.Type             // MessageType   — "text" | "image" | "video" | "audio" | "document" | …
-    msg.Text             // *string       — text content (nil for media-only messages)
+    msg.Text             // *string       — text content (nil for media-only messages); use msg.GetText() to avoid nil deref
     msg.MediaID          // *string       — server-side media ID
     msg.ExtraData        // json.RawMessage — inline keyboard payload (when attached)
     msg.Status           // MessageStatus — "sent" | "delivered" | "read"
@@ -614,7 +612,8 @@ func main() {
     bot := kappelas.NewBot("YOUR_BOT_TOKEN")
 
     bot.OnMessage(func(msg *kappelas.Message) {
-        if msg.Text == nil {
+        text := msg.GetText()
+        if text == "" {
             return
         }
 
@@ -622,7 +621,7 @@ func main() {
         isPrivate := msg.ChatType != nil && *msg.ChatType == kappelas.ChatTypePrivate
 
         // /status command — works anywhere
-        if *msg.Text == "/status" {
+        if text == "/status" {
             p := kappelas.SendMessageParams{
                 ChatID: msg.ChatID,
                 Text:   "🟢 Bot en ligne",
@@ -635,7 +634,7 @@ func main() {
         }
 
         // /invite command — admin-only, group/channel only
-        if *msg.Text == "/invite" && !isPrivate {
+        if text == "/invite" && !isPrivate {
             link, err := bot.Chats.CreateInviteLink(ctx, kappelas.CreateChatInviteLinkParams{
                 ChatID: msg.ChatID,
             })
@@ -1015,7 +1014,7 @@ func main() {
     bot := kappelas.NewBot("YOUR_BOT_TOKEN")
 
     bot.OnMessage(func(msg *kappelas.Message) {
-        if msg.Text == nil || *msg.Text != "/start" {
+        if msg.GetText() != "/start" {
             return
         }
         // Persistent navigation chips
