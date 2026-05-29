@@ -1,7 +1,9 @@
 package kappelas
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -207,6 +209,52 @@ func (b *Bot) HandleWebhook(body []byte) {
 	dispatchWebhook(body, b.dispatchMessage, b.dispatchCallback)
 }
 
+// Reply sends a text reply to a Message or CallbackQuery event.
+//   - When called with a *Message — sets ChatID and ReplyToID automatically (shows a quote banner).
+//   - When called with a *CallbackQuery — sets ChatID only (callback queries have no message ID).
+//
+// Pass an optional SendMessageParams to attach a keyboard or set other options.
+// ChatID, ReplyToID, and Text in opts are overwritten automatically.
+//
+// Example:
+//
+//	bot.OnMessage(func(msg *kappelas.Message) {
+//	    ctx := context.Background()
+//	    bot.Reply(ctx, msg, "Got it! 👋")
+//
+//	    // With an inline keyboard
+//	    bot.Reply(ctx, msg, "Pick one:", kappelas.SendMessageParams{
+//	        ReplyMarkup: kappelas.InlineKeyboard{
+//	            InlineKeyboard: [][]kappelas.InlineKeyboardButton{{
+//	                {Text: "✅ Oui", CallbackData: ptr("yes")},
+//	                {Text: "❌ Non", CallbackData: ptr("no")},
+//	            }},
+//	        },
+//	    })
+//	})
+//
+//	bot.OnCallbackQuery(func(cb *kappelas.CallbackQuery) {
+//	    ctx := context.Background()
+//	    bot.Reply(ctx, cb, "Tu as cliqué : "+cb.CallbackData)
+//	})
+func (b *Bot) Reply(ctx context.Context, event any, text string, opts ...SendMessageParams) (*SendResult, error) {
+	p := SendMessageParams{Text: text}
+	if len(opts) > 0 {
+		p = opts[0]
+		p.Text = text
+	}
+	switch v := event.(type) {
+	case *Message:
+		p.ChatID = v.ChatID
+		p.ReplyToID = &v.ID
+	case *CallbackQuery:
+		p.ChatID = v.ChatID
+	default:
+		return nil, fmt.Errorf("kappelas: Reply: unsupported event type %T (expected *Message or *CallbackQuery)", event)
+	}
+	return b.Messages.Send(ctx, p)
+}
+
 // ─── Internal dispatch ───────────────────────────────────────────────────────
 
 func (b *Bot) dispatchWire(data []byte) {
@@ -283,6 +331,7 @@ func dispatchWebhook(body []byte, onMsg func(*Message), onCB func(*CallbackQuery
 			Text      *string         `json:"text"`
 			ExtraData json.RawMessage `json:"extra_data"`
 			SentAt    int64           `json:"sent_at"`
+			ChatType  *ChatType       `json:"chat_type"`
 		}
 		if json.Unmarshal(body, &raw) != nil {
 			return
@@ -290,6 +339,7 @@ func dispatchWebhook(body []byte, onMsg func(*Message), onCB func(*CallbackQuery
 		onMsg(&Message{
 			ID:        raw.MessageID,
 			ChatID:    raw.ChatID,
+			ChatType:  raw.ChatType,
 			SenderID:  raw.SenderID,
 			Type:      raw.Type,
 			Text:      raw.Text,

@@ -121,16 +121,18 @@ func main() {
 		fmt.Printf("[!] Erreur : %v\n", err)
 	})
 
+	// Capturer les messages entrants pendant les tests (pour tester bot.Reply)
+	var lastMsg *kappelas.Message
+	bot.OnMessage(func(msg *kappelas.Message) {
+		lastMsg = msg
+		fmt.Printf("\n[→] Message reçu — chat_id=%d type=%s\n", msg.ChatID, msg.Type)
+	})
+
 	// Répondre aux clics de boutons pendant les tests
 	bot.OnCallbackQuery(func(cb *kappelas.CallbackQuery) {
 		fmt.Printf("\n[→] Bouton cliqué — chat_id=%d sender=%q data=%q\n",
 			cb.ChatID, ptrStr(cb.SenderNom, cb.SenderID), cb.CallbackData)
-		if _, err := bot.Messages.Send(ctx, kappelas.SendMessageParams{
-			ChatID: cb.ChatID,
-			Text:   "Tu as cliqué : " + cb.CallbackData,
-		}); err != nil {
-			fmt.Printf("[✗] Erreur réponse callback : %v\n", err)
-		}
+		bot.Reply(ctx, cb, "Tu as cliqué : "+cb.CallbackData)
 	})
 
 	bot.Start()
@@ -143,19 +145,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ─── Tests ───────────────────────────────────────────────────────────────
+	// ─── 1. Profil ───────────────────────────────────────────────────────────
 
-	// 1. Profil
 	run("profile.Get()", func() (any, error) {
 		return bot.Profile.Get(ctx)
 	})
 
-	// 2. Chats
+	// ─── 2. Chats ────────────────────────────────────────────────────────────
+
 	run("chats.List(limit=3)", func() (any, error) {
 		return bot.Chats.List(ctx, kappelas.GetChatsParams{Limit: 3})
 	})
 
-	// 3. Texte simple
+	// ─── 3. Texte simple ─────────────────────────────────────────────────────
+
 	sent := run("messages.Send() — texte simple", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
@@ -163,7 +166,8 @@ func main() {
 		})
 	})
 
-	// 4. Inline keyboard
+	// ─── 4. Inline keyboard ──────────────────────────────────────────────────
+
 	run("messages.Send() — inline keyboard", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
@@ -177,29 +181,69 @@ func main() {
 		})
 	})
 
-	// 5. Reply keyboard
-	run("messages.Send() — reply keyboard", func() (any, error) {
+	// ─── 5. Reply keyboard (short form) ──────────────────────────────────────
+
+	run("messages.Send() — reply keyboard (short form)", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
-			Text:   "Test reply keyboard :",
+			Text:   "Test reply keyboard (short form) :",
 			ReplyMarkup: kappelas.ReplyKeyboard{
-				Keyboard: [][]string{{"Option A", "Option B"}, {"Annuler"}},
+				Keyboard: [][]kappelas.ReplyKeyboardButton{
+					{{Text: "Option A"}, {Text: "Option B"}},
+					{{Text: "Annuler"}},
+				},
 			},
 		})
 	})
 
-	// 6. Scroll keyboard
-	run("messages.Send() — scroll keyboard", func() (any, error) {
+	// ─── 6. Reply keyboard (long form) ───────────────────────────────────────
+
+	run("messages.Send() — reply keyboard (long form)", func() (any, error) {
+		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Test reply keyboard (long form — label ≠ callback) :",
+			ReplyMarkup: kappelas.ReplyKeyboard{
+				Keyboard: [][]kappelas.ReplyKeyboardButton{
+					{
+						{Text: "✅ Confirmer", CallbackData: "confirm_yes"},
+						{Text: "❌ Annuler", CallbackData: "confirm_no"},
+					},
+				},
+			},
+		})
+	})
+
+	// ─── 7. Scroll keyboard (short form) ─────────────────────────────────────
+
+	run("messages.Send() — scroll keyboard (short form)", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
 			Text:   "Test scroll keyboard :",
 			ReplyMarkup: kappelas.ScrollKeyboard{
-				ScrollKeyboard: []string{"Petit", "Moyen", "Grand", "XL"},
+				ScrollKeyboard: []kappelas.ScrollKeyboardButton{
+					{Text: "Petit"}, {Text: "Moyen"}, {Text: "Grand"}, {Text: "XL"},
+				},
 			},
 		})
 	})
 
-	// 7. Typing indicator
+	// ─── 8. Scroll keyboard (long form) ──────────────────────────────────────
+
+	run("messages.Send() — scroll keyboard (long form)", func() (any, error) {
+		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Test scroll keyboard (long form) :",
+			ReplyMarkup: kappelas.ScrollKeyboard{
+				ScrollKeyboard: []kappelas.ScrollKeyboardButton{
+					{Text: "📦 Commandes", CallbackData: "menu_orders"},
+					{Text: "❓ Aide", CallbackData: "menu_help"},
+				},
+			},
+		})
+	})
+
+	// ─── 9. Typing indicator ─────────────────────────────────────────────────
+
 	run("messages.SendTyping() — show", func() (any, error) {
 		return bot.Messages.SendTyping(ctx, kappelas.SendTypingParams{ChatID: chatID})
 	})
@@ -208,7 +252,8 @@ func main() {
 		return bot.Messages.SendTyping(ctx, kappelas.SendTypingParams{ChatID: chatID, IsTyping: &hide})
 	})
 
-	// 8. Photo
+	// ─── 10. Photo ───────────────────────────────────────────────────────────
+
 	run("messages.SendPhoto()", func() (any, error) {
 		return bot.Messages.SendPhoto(ctx, kappelas.SendMediaParams{
 			ChatID:  chatID,
@@ -217,7 +262,8 @@ func main() {
 		})
 	})
 
-	// 9. Document
+	// ─── 11. Document ────────────────────────────────────────────────────────
+
 	run("messages.SendDocument()", func() (any, error) {
 		return bot.Messages.SendDocument(ctx, kappelas.SendMediaParams{
 			ChatID:  chatID,
@@ -226,7 +272,8 @@ func main() {
 		})
 	})
 
-	// 10. Audio
+	// ─── 12. Audio ───────────────────────────────────────────────────────────
+
 	run("messages.SendAudio()", func() (any, error) {
 		return bot.Messages.SendAudio(ctx, kappelas.SendMediaParams{
 			ChatID:  chatID,
@@ -235,20 +282,24 @@ func main() {
 		})
 	})
 
-	// 11. Carousel
+	// ─── 13. Carousel ────────────────────────────────────────────────────────
+
 	run("messages.SendCarousel()", func() (any, error) {
 		return bot.Messages.SendCarousel(ctx, kappelas.SendCarouselParams{
 			ChatID: chatID,
 			Text:   "Test carousel :",
 			Carousel: []kappelas.CarouselCard{
-				{ID: "p1", Title: "Produit A", Subtitle: ptr("9,99 €"), ButtonText: ptr("Voir")},
-				{ID: "p2", Title: "Produit B", Subtitle: ptr("19,99 €"), ButtonText: ptr("Voir")},
+				{ID: "p1", Title: "Produit A", Subtitle: ptr("9 900 FCFA"), ButtonText: ptr("Voir")},
+				{ID: "p2", Title: "Produit B", Subtitle: ptr("19 900 FCFA"), ButtonText: ptr("Voir")},
 			},
-			QuickReplyButtons: []string{"Voir plus", "Annuler"},
+			QuickReplyButtons: []kappelas.ScrollKeyboardButton{
+				{Text: "Voir plus"}, {Text: "Annuler"},
+			},
 		})
 	})
 
-	// 12. Send + Edit
+	// ─── 14. Edit ────────────────────────────────────────────────────────────
+
 	sentEdit := run("messages.Send() — pour edit", func() (any, error) {
 		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
 			ChatID: chatID,
@@ -270,7 +321,8 @@ func main() {
 		})
 	}
 
-	// 13. Delete
+	// ─── 15. Delete ──────────────────────────────────────────────────────────
+
 	if r, ok := sent.(*kappelas.SendResult); ok && r != nil {
 		run(fmt.Sprintf("messages.Delete() — message_id=%d", r.MessageID), func() (any, error) {
 			return bot.Messages.Delete(ctx, kappelas.DeleteMessageParams{
@@ -280,10 +332,156 @@ func main() {
 		})
 	}
 
-	// 14. Webhook info
+	// ─── 16. bot.Reply() ─────────────────────────────────────────────────────
+
+	// Envoyer un message, attendre un peu pour le recevoir par WS, puis Reply
+	var replySource *kappelas.SendResult
+	if r, ok := run("messages.Send() — source pour bot.Reply()", func() (any, error) {
+		return bot.Messages.Send(ctx, kappelas.SendMessageParams{
+			ChatID: chatID,
+			Text:   "Message source pour tester bot.Reply() 📌",
+		})
+	}).(*kappelas.SendResult); ok && r != nil {
+		replySource = r
+	}
+
+	// Attendre que le WS livre le message (max 3s)
+	if replySource != nil {
+		deadline := time.Now().Add(3 * time.Second)
+		for time.Now().Before(deadline) && lastMsg == nil {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	if lastMsg != nil {
+		run("bot.Reply() — depuis *Message", func() (any, error) {
+			return bot.Reply(ctx, lastMsg, "↩️ Réponse via bot.Reply()")
+		})
+		run("bot.Reply() — avec inline keyboard", func() (any, error) {
+			return bot.Reply(ctx, lastMsg, "Choix via bot.Reply() :", kappelas.SendMessageParams{
+				ReplyMarkup: kappelas.InlineKeyboard{
+					InlineKeyboard: [][]kappelas.InlineKeyboardButton{{
+						{Text: "✅ OK", CallbackData: ptr("reply_ok")},
+					}},
+				},
+			})
+		})
+	} else {
+		fmt.Println("\n→ bot.Reply() — skipped (no WS message received in time)")
+	}
+
+	// ─── 17. Webhook info ────────────────────────────────────────────────────
+
 	run("webhooks.GetInfo()", func() (any, error) {
 		return bot.Webhooks.GetInfo(ctx)
 	})
+
+	// ─── 18. chats.GetMyGroups() ─────────────────────────────────────────────
+
+	var myGroups *kappelas.GetMyGroupsResult
+	if r, ok := run("chats.GetMyGroups()", func() (any, error) {
+		return bot.Chats.GetMyGroups(ctx)
+	}).(*kappelas.GetMyGroupsResult); ok && r != nil {
+		myGroups = r
+		fmt.Printf("  [i] %d groupe(s)/canal/canaux\n", len(myGroups.Groups))
+		for _, g := range myGroups.Groups {
+			title := "(sans titre)"
+			if g.Title != nil {
+				title = *g.Title
+			}
+			fmt.Printf("      %d (%s) %q → %s\n", g.ChatID, g.Type, title, g.BotRole)
+		}
+	}
+
+	// ─── 19. Admin-only group tests (si le bot est admin dans un groupe) ──────
+
+	// Utilise le premier groupe où le bot est admin, sinon saute les tests
+	var adminGroupID int64
+	if myGroups != nil {
+		for _, g := range myGroups.Groups {
+			if g.BotRole == kappelas.ParticipantRoleAdmin {
+				adminGroupID = g.ChatID
+				break
+			}
+		}
+	}
+
+	if adminGroupID != 0 {
+		fmt.Printf("\n[i] Tests admin dans le groupe %d\n", adminGroupID)
+
+		// GetAdministrators
+		var admins *kappelas.GetChatAdministratorsResult
+		if r, ok := run("chats.GetAdministrators()", func() (any, error) {
+			return bot.Chats.GetAdministrators(ctx, kappelas.GetChatAdministratorsParams{
+				ChatID: adminGroupID,
+			})
+		}).(*kappelas.GetChatAdministratorsResult); ok && r != nil {
+			admins = r
+			fmt.Printf("  [i] %d admin(s)\n", len(admins.Admins))
+		}
+
+		// GetMember — cherche le premier admin
+		if admins != nil && len(admins.Admins) > 0 {
+			firstAdmin := admins.Admins[0]
+			run(fmt.Sprintf("chats.GetMember() — user_id=%s", firstAdmin.UserID), func() (any, error) {
+				return bot.Chats.GetMember(ctx, kappelas.GetChatMemberParams{
+					ChatID: adminGroupID,
+					UserID: firstAdmin.UserID,
+				})
+			})
+		}
+
+		// CreateInviteLink — permanent, unlimited
+		var inviteLink *kappelas.ChatInviteLink
+		if r, ok := run("chats.CreateInviteLink() — permanent", func() (any, error) {
+			return bot.Chats.CreateInviteLink(ctx, kappelas.CreateChatInviteLinkParams{
+				ChatID: adminGroupID,
+			})
+		}).(*kappelas.ChatInviteLink); ok && r != nil {
+			inviteLink = r
+			fmt.Printf("  [i] URL : %s\n", inviteLink.URL)
+		}
+
+		// GetInviteLinks
+		run("chats.GetInviteLinks()", func() (any, error) {
+			return bot.Chats.GetInviteLinks(ctx, kappelas.GetChatInviteLinksParams{
+				ChatID: adminGroupID,
+			})
+		})
+
+		// CreateSingleUseInviteLink
+		var singleLink *kappelas.ChatInviteLink
+		if r, ok := run("chats.CreateSingleUseInviteLink()", func() (any, error) {
+			return bot.Chats.CreateSingleUseInviteLink(ctx, kappelas.CreateChatInviteLinkParams{
+				ChatID: adminGroupID,
+			})
+		}).(*kappelas.ChatInviteLink); ok && r != nil {
+			singleLink = r
+		}
+
+		// RevokeInviteLink — révoque le lien à usage unique
+		if singleLink != nil {
+			run(fmt.Sprintf("chats.RevokeInviteLink() — code=%s", singleLink.Code), func() (any, error) {
+				return bot.Chats.RevokeInviteLink(ctx, kappelas.RevokeChatInviteLinkParams{
+					ChatID: adminGroupID,
+					Code:   singleLink.Code,
+				})
+			})
+		}
+
+		// Révoquer aussi le lien permanent créé
+		if inviteLink != nil {
+			run("chats.RevokeInviteLink() — permanent", func() (any, error) {
+				return bot.Chats.RevokeInviteLink(ctx, kappelas.RevokeChatInviteLinkParams{
+					ChatID: adminGroupID,
+					Code:   inviteLink.Code,
+				})
+			})
+		}
+	} else {
+		fmt.Println("\n[i] Tests admin skipped — le bot n'est admin dans aucun groupe")
+		fmt.Println("    (ajouter le bot comme admin pour tester GetAdministrators, invite links, etc.)")
+	}
 
 	bot.Stop()
 
