@@ -80,12 +80,31 @@ type Message struct {
 	ExpiresAt       *int64          `json:"expires_at"`
 	// SenderName is the display name of the sender.
 	// Only present on messages in groups and channels — absent in private chats.
-	// Note: CallbackQuery has SenderNom (not SenderName) — do not confuse the two.
 	SenderName      *string `json:"sender_name,omitempty"`
 	SenderAvatarURL *string `json:"sender_avatar_url,omitempty"`
 	ClientMsgID     string  `json:"client_msg_id,omitempty"`
 	Width           *int    `json:"width,omitempty"`
 	Height          *int    `json:"height,omitempty"`
+}
+
+// GetText returns the message text, or "" if nil.
+// Use this instead of dereferencing Text directly to avoid nil-pointer panics.
+func (m *Message) GetText() string {
+	if m.Text != nil {
+		return *m.Text
+	}
+	return ""
+}
+
+// GetSenderName returns the sender display name, or "" if absent.
+// Use this instead of dereferencing SenderName directly to avoid nil-pointer panics.
+//
+//	fmt.Sprintf("Hello %s!", msg.GetSenderName())  // safe
+func (m *Message) GetSenderName() string {
+	if m.SenderName != nil {
+		return *m.SenderName
+	}
+	return ""
 }
 
 // ─── Chat ────────────────────────────────────────────────────────────────────
@@ -254,12 +273,22 @@ type WebhookInfo struct {
 type CallbackQuery struct {
 	ChatID         int64   `json:"chat_id"`
 	SenderID       string  `json:"sender_id"`
-	// SenderNom is the display name of the user who clicked (e.g. "Arnel LAWSON").
-	// Note: Message uses SenderName — do not confuse the two.
-	SenderNom      *string `json:"sender_nom"`
+	// SenderName is the display name of the user who clicked (e.g. "Arnel LAWSON").
+	SenderName     *string `json:"sender_name"`
 	SenderUsername *string `json:"sender_username"`
 	CallbackData   string  `json:"callback_data"`
 	SentAt         int64   `json:"sent_at"`
+}
+
+// GetSenderName returns the sender display name, or "" if absent.
+// Use this instead of dereferencing SenderName directly to avoid nil-pointer panics.
+//
+//	fmt.Sprintf("Hello %s!", cb.GetSenderName())  // safe
+func (cb *CallbackQuery) GetSenderName() string {
+	if cb.SenderName != nil {
+		return *cb.SenderName
+	}
+	return ""
 }
 
 // ─── Results ─────────────────────────────────────────────────────────────────

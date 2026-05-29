@@ -22,7 +22,6 @@ Build bots and personal automations — send messages, handle events, manage cha
   - [`bot.Reply()` — convenience shorthand](#botreply--convenience-shorthand)
   - [`Message` fields](#message-fields)
   - [`CallbackQuery` fields](#callbackquery-fields)
-  - [⚠️ `SenderName` vs `SenderNom`](#️-sendername-vs-sendernom)
 - [API reference](#api-reference)
   - [Constructor options](#constructor-options)
   - [messages](#messages)
@@ -274,7 +273,7 @@ bot.OnMessage(func(msg *kappelas.Message) {
 bot.OnCallbackQuery(func(cb *kappelas.CallbackQuery) {
     cb.ChatID          // int64   — chat where the button was clicked
     cb.SenderID        // string  — UUID of the user who clicked
-    cb.SenderNom       // *string — display name (e.g. "Arnel LAWSON")
+    cb.SenderName      // *string — display name (e.g. "Arnel LAWSON")  use cb.GetSenderName() to avoid nil deref
     cb.SenderUsername  // *string — username (e.g. "arnell")
     cb.CallbackData    // string  — value set on the button
     cb.SentAt          // int64   — Unix timestamp (seconds)
@@ -284,17 +283,6 @@ bot.OnCallbackQuery(func(cb *kappelas.CallbackQuery) {
 > Clicks are deduplicated server-side — your handler fires exactly once per click.
 
 ---
-
-### ⚠️ `SenderName` vs `SenderNom`
-
-These two fields look similar but come from different event types:
-
-| Field | Event type | Notes |
-|-------|-----------|-------|
-| `msg.SenderName` | `*Message` | Display name in groups/channels. **Nil in private chats.** |
-| `cb.SenderNom` | `*CallbackQuery` | Display name of the user who clicked the button. |
-
-Copy-pasting a handler from `OnMessage` to `OnCallbackQuery` (or vice-versa) gives a compile error — which is intentional.
 
 ---
 
@@ -493,9 +481,9 @@ bot.OnMessage(func(msg *kappelas.Message) {
 ```go
 bot.OnMessage(func(msg *kappelas.Message) {
     ctx := context.Background()
-    name := "ami"
-    if msg.SenderName != nil {
-        name = *msg.SenderName
+    name := msg.GetSenderName() // "" in private chats, display name in groups/channels
+    if name == "" {
+        name = "ami"
     }
     bot.Messages.Send(ctx, kappelas.SendMessageParams{
         ChatID:    msg.ChatID,

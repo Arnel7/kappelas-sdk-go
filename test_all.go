@@ -721,7 +721,7 @@ func main() {
 			"type":             "callback",
 			"chat_id":          chatID,
 			"sender_id":        "test-user-uuid",
-			"sender_nom":       "Test User",
+			"sender_name":      "Test User",
 			"sender_username":  "testuser",
 			"callback_data":    "webhook_cb_test_99002",
 			"sent_at":          time.Now().Unix(),
@@ -733,7 +733,14 @@ func main() {
 			if cb.CallbackData != "webhook_cb_test_99002" {
 				return nil, fmt.Errorf("callback_data incorrect : %s", cb.CallbackData)
 			}
-			return map[string]any{"events_received": 1, "callback_data": cb.CallbackData}, nil
+			if cb.GetSenderName() != "Test User" {
+				return nil, fmt.Errorf("GetSenderName() incorrect : %q (attendu \"Test User\")", cb.GetSenderName())
+			}
+			return map[string]any{
+				"events_received": 1,
+				"callback_data":   cb.CallbackData,
+				"sender_name":     cb.GetSenderName(),
+			}, nil
 		case <-time.After(300 * time.Millisecond):
 			return nil, fmt.Errorf("timeout — aucun event reçu")
 		}
