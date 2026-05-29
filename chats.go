@@ -120,7 +120,15 @@ func (r *ChatsResource) PromoteMember(ctx context.Context, params PromoteChatMem
 //	    fmt.Println(admin.UserID, admin.Role)
 //	}
 func (r *ChatsResource) GetAdministrators(ctx context.Context, params GetChatAdministratorsParams) (*GetChatAdministratorsResult, error) {
-	return httpPost[*GetChatAdministratorsResult](ctx, r.http, r.base+"/getChatAdministrators", params)
+	// The API returns the admins array directly as result (not wrapped in an object).
+	admins, err := httpPost[[]ChatMemberInfo](ctx, r.http, r.base+"/getChatAdministrators", params)
+	if err != nil {
+		return nil, err
+	}
+	if admins == nil {
+		admins = []ChatMemberInfo{}
+	}
+	return &GetChatAdministratorsResult{Admins: admins}, nil
 }
 
 // GetMember returns info for a specific member (UserID + Role).
