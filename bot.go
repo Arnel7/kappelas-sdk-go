@@ -236,6 +236,18 @@ func (b *Bot) GetStatus(ctx context.Context) (*BotPauseStatus, error) {
 	return httpPost[*BotPauseStatus](ctx, b.http, b.base+"/getBotStatus", map[string]any{})
 }
 
+// PauseInChat pauses this bot in ONE conversation only (the bot must be a participant).
+// The bot stops receiving messages from that conversation while it keeps working in all
+// its other chats. Unlike Pause, this is scoped to a single conversation.
+func (b *Bot) PauseInChat(ctx context.Context, chatID int64) (*ChatAutomationResult, error) {
+	return httpPost[*ChatAutomationResult](ctx, b.http, b.base+"/pauseBotInChat", map[string]any{"chat_id": chatID})
+}
+
+// ResumeInChat resumes this bot in a conversation after PauseInChat.
+func (b *Bot) ResumeInChat(ctx context.Context, chatID int64) (*ChatAutomationResult, error) {
+	return httpPost[*ChatAutomationResult](ctx, b.http, b.base+"/resumeBotInChat", map[string]any{"chat_id": chatID})
+}
+
 // Reply sends a text reply to a Message or CallbackQuery event.
 //   - When called with a *Message — sets ChatID and ReplyToID automatically (shows a quote banner).
 //   - When called with a *CallbackQuery — sets ChatID only (callback queries have no message ID).

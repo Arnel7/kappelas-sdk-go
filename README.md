@@ -139,6 +139,18 @@ bot.Resume(ctx)              // → Paused: false
 bot.GetStatus(ctx)           // → Paused: bool
 ```
 
+To pause only in ONE conversation (e.g. you take over a single chat while the AI keeps handling the rest):
+
+```go
+// Personal automation, scoped to one chat (chatID int64) — → Done: true
+me.PauseAutomationInChat(ctx, chatID)
+me.ResumeAutomationInChat(ctx, chatID)
+
+// Bot, scoped to one chat
+bot.PauseInChat(ctx, chatID)
+bot.ResumeInChat(ctx, chatID)
+```
+
 ---
 
 ## Events — WebSocket vs Webhook

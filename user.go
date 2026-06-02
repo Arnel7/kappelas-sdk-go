@@ -222,6 +222,25 @@ func (u *User) GetAutomationStatus(ctx context.Context) (*AutomationStatus, erro
 	return httpPost[*AutomationStatus](ctx, u.http, u.base+"/getAutomationStatus", map[string]any{})
 }
 
+// ChatAutomationResult is returned by the per-conversation pause methods.
+type ChatAutomationResult struct {
+	Done bool `json:"done"`
+}
+
+// PauseAutomationInChat pauses your personal automations in ONE conversation only.
+//
+// Use this to take over a single chat (e.g. you start replying to X yourself): your
+// AI stops receiving messages from that conversation while it keeps handling all your
+// other chats. Unlike PauseAutomations, this is scoped to a single conversation.
+func (u *User) PauseAutomationInChat(ctx context.Context, chatID int64) (*ChatAutomationResult, error) {
+	return httpPost[*ChatAutomationResult](ctx, u.http, u.base+"/pauseAutomationInChat", map[string]any{"chat_id": chatID})
+}
+
+// ResumeAutomationInChat resumes your personal automations in a conversation.
+func (u *User) ResumeAutomationInChat(ctx context.Context, chatID int64) (*ChatAutomationResult, error) {
+	return httpPost[*ChatAutomationResult](ctx, u.http, u.base+"/resumeAutomationInChat", map[string]any{"chat_id": chatID})
+}
+
 // ─── Internal dispatch ───────────────────────────────────────────────────────
 
 func (u *User) dispatchWire(data []byte) {
