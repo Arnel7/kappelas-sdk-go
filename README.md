@@ -15,6 +15,7 @@ Build bots and personal automations — send messages, handle events, manage cha
 - [Prerequisites](#prerequisites)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [Pausing automations](#pausing-automations)
 - [Events — WebSocket vs Webhook](#events--websocket-vs-webhook)
   - [WebSocket (development)](#websocket-development)
   - [Webhook (production)](#webhook-production)
@@ -118,6 +119,24 @@ me.OnMessage(func(msg *kappelas.Message) {
 
 me.Start()
 select {}
+```
+
+### Pausing automations
+
+Pausing your personal automation makes your account stop receiving incoming messages over `/v1/me`, so an AI auto-responder is never triggered, and any send is rejected with `AUTOMATIONS_PAUSED` — until you resume. Pausing a bot makes it stop receiving incoming messages (no WebSocket push, no webhook) and rejects sends with `BOT_PAUSED` until resumed. This is useful when the human owner wants to take over and stop the AI.
+
+```go
+ctx := context.Background()
+
+// Personal automation — *kappelas.AutomationStatus{AutomationsPaused bool}
+me.PauseAutomations(ctx)     // → AutomationsPaused: true
+me.ResumeAutomations(ctx)    // → AutomationsPaused: false
+me.GetAutomationStatus(ctx)  // → AutomationsPaused: bool
+
+// Bot — *kappelas.BotPauseStatus{Paused bool}
+bot.Pause(ctx)               // → Paused: true
+bot.Resume(ctx)              // → Paused: false
+bot.GetStatus(ctx)           // → Paused: bool
 ```
 
 ---

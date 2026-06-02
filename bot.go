@@ -77,6 +77,7 @@ type Bot struct {
 	Communities *CommunitiesResource
 
 	http *httpClient
+	base string
 	ws   *wsClient
 
 	mu          sync.RWMutex
@@ -104,8 +105,9 @@ func NewBot(token string, opts ...BotOption) *Bot {
 	w := newWSClient(toWSURL(cfg.baseURL, base+"/ws"), cfg.wsMaxRetries)
 
 	b := &Bot{
-		http:     h,
-		ws:       w,
+		http:        h,
+		base:        base,
+		ws:          w,
 		Messages:    &MessagesResource{http: h, base: base},
 		Chats:       &ChatsResource{http: h, base: base},
 		Webhooks:    &WebhooksResource{http: h, base: base},
@@ -210,6 +212,28 @@ func (b *Bot) Connected() bool {
 //	})
 func (b *Bot) HandleWebhook(body []byte) {
 	dispatchWebhook(body, b.dispatchMessage, b.dispatchCallback)
+}
+
+// BotPauseStatus reports whether a bot is paused.
+type BotPauseStatus struct {
+	Paused bool `json:"paused"`
+}
+
+// Pause pauses this bot. While paused, the bot stops receiving incoming messages
+// (no WS push, no webhook) and any send call is rejected with BOT_PAUSED, until
+// Resume is called. Lets an owner stop an AI bot on demand.
+func (b *Bot) Pause(ctx context.Context) (*BotPauseStatus, error) {
+	return httpPost[*BotPauseStatus](ctx, b.http, b.base+"/pauseBot", map[string]any{})
+}
+
+// Resume resumes this bot after Pause.
+func (b *Bot) Resume(ctx context.Context) (*BotPauseStatus, error) {
+	return httpPost[*BotPauseStatus](ctx, b.http, b.base+"/resumeBot", map[string]any{})
+}
+
+// GetStatus reports whether this bot is currently paused.
+func (b *Bot) GetStatus(ctx context.Context) (*BotPauseStatus, error) {
+	return httpPost[*BotPauseStatus](ctx, b.http, b.base+"/getBotStatus", map[string]any{})
 }
 
 // Reply sends a text reply to a Message or CallbackQuery event.

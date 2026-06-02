@@ -1,6 +1,7 @@
 package kappelas
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sync"
@@ -61,6 +62,7 @@ type User struct {
 	Profile *UserProfileResource
 
 	http *httpClient
+	base string
 	ws   *wsClient
 
 	mu          sync.RWMutex
@@ -92,6 +94,7 @@ func NewUser(apiKey string, opts ...UserOption) *User {
 
 	u := &User{
 		http:     h,
+		base:     base,
 		ws:       w,
 		Messages: &MessagesResource{http: h, base: base},
 		Chats:    &ChatsResource{http: h, base: base},
@@ -193,6 +196,30 @@ func (u *User) Connected() bool {
 //	})
 func (u *User) HandleWebhook(body []byte) {
 	dispatchWebhook(body, u.dispatchMessage, u.dispatchCallback)
+}
+
+// AutomationStatus reports whether an account's personal automations are paused.
+type AutomationStatus struct {
+	AutomationsPaused bool `json:"automations_paused"`
+}
+
+// PauseAutomations pauses this account's personal automations.
+//
+// While paused, the account stops receiving incoming messages over /v1/me (so an
+// AI auto-responder is never triggered) and any send call is rejected with
+// AUTOMATIONS_PAUSED. Useful when the human owner takes over the chat.
+func (u *User) PauseAutomations(ctx context.Context) (*AutomationStatus, error) {
+	return httpPost[*AutomationStatus](ctx, u.http, u.base+"/pauseAutomations", map[string]any{})
+}
+
+// ResumeAutomations resumes this account's personal automations after PauseAutomations.
+func (u *User) ResumeAutomations(ctx context.Context) (*AutomationStatus, error) {
+	return httpPost[*AutomationStatus](ctx, u.http, u.base+"/resumeAutomations", map[string]any{})
+}
+
+// GetAutomationStatus reports whether this account's personal automations are paused.
+func (u *User) GetAutomationStatus(ctx context.Context) (*AutomationStatus, error) {
+	return httpPost[*AutomationStatus](ctx, u.http, u.base+"/getAutomationStatus", map[string]any{})
 }
 
 // ─── Internal dispatch ───────────────────────────────────────────────────────
