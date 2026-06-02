@@ -73,6 +73,8 @@ type Bot struct {
 	Webhooks *WebhooksResource
 	// Profile provides access to the bot's own profile.
 	Profile *BotProfileResource
+	// Communities provides methods to manage communities (members, roles, invites, requests).
+	Communities *CommunitiesResource
 
 	http *httpClient
 	ws   *wsClient
@@ -104,10 +106,11 @@ func NewBot(token string, opts ...BotOption) *Bot {
 	b := &Bot{
 		http:     h,
 		ws:       w,
-		Messages: &MessagesResource{http: h, base: base},
-		Chats:    &ChatsResource{http: h, base: base},
-		Webhooks: &WebhooksResource{http: h, base: base},
-		Profile:  &BotProfileResource{http: h, base: base},
+		Messages:    &MessagesResource{http: h, base: base},
+		Chats:       &ChatsResource{http: h, base: base},
+		Webhooks:    &WebhooksResource{http: h, base: base},
+		Profile:     &BotProfileResource{http: h, base: base},
+		Communities: &CommunitiesResource{http: h, base: base},
 	}
 
 	w.onRaw = func(data []byte) { b.dispatchWire(data) }

@@ -34,6 +34,7 @@ Build bots and personal automations — send messages, handle events, manage cha
   - [Full group bot example](#full-group-bot-example)
   - [Chat member management](#chat-member-management)
   - [Invite links](#invite-links)
+  - [communities](#communities)
   - [webhooks](#webhooks)
   - [profile](#profile)
 - [Keyboards](#keyboards)
@@ -846,6 +847,81 @@ result, err := bot.Chats.RevokeInviteLink(ctx, kappelas.RevokeChatInviteLinkPara
     Code:   "aBcD123xyz", // link.Code from CreateInviteLink
 })
 fmt.Println(result.Revoked) // true
+```
+
+---
+
+### `communities`
+
+Manage **communities** with a bot (same rights as a community admin). A bot administers
+a community **only if it is admin of that community**.
+
+> ⚠️ **Distinct scopes.** Being admin of a *group* attached to a community does **not**
+> make you admin of the *community*. `Community.Role` is the role **in the community**.
+
+To make someone (a person OR a bot) a community admin, it's two steps — add as member, then promote:
+
+```go
+ctx := context.Background()
+
+// 1) add as member   2) promote to community admin (same flow for a user or a bot)
+bot.Communities.AddMember(ctx, kappelas.AddCommunityMemberParams{
+    CommunityID: 7, UserID: "<uuid or bot_user_id>", Role: kappelas.ParticipantRoleMember,
+})
+bot.Communities.PromoteMember(ctx, kappelas.PromoteCommunityMemberParams{
+    CommunityID: 7, UserID: "<uuid>", Role: kappelas.ParticipantRoleAdmin,
+})
+```
+
+#### Listing
+
+```go
+// Communities the bot is a member of (each carries the bot's Role).
+res, _ := bot.Communities.List(ctx)
+for _, c := range res.Communities {
+    fmt.Println(c.ID, c.Name, "→", c.Role) // "member" | "admin"
+}
+
+// Only the ones where the bot is community admin.
+admins, _ := bot.Communities.ListAdmin(ctx)
+fmt.Printf("Community admin in %d community(ies)\n", len(admins))
+
+// Full detail (infos + groups + members, members enriched with Name/AvatarURL).
+detail, _ := bot.Communities.Get(ctx, kappelas.GetCommunityParams{CommunityID: 7})
+```
+
+#### Other methods
+
+```go
+// CRUD
+bot.Communities.Create(ctx, kappelas.CreateCommunityParams{Name: "Devs", RequiresApproval: true})
+desc := "New"
+bot.Communities.Update(ctx, kappelas.UpdateCommunityParams{CommunityID: 7, Description: &desc}) // admin
+bot.Communities.Delete(ctx, kappelas.GetCommunityParams{CommunityID: 7})                        // admin
+r, _ := bot.Communities.Join(ctx, kappelas.GetCommunityParams{CommunityID: 7})                  // r.Pending if approval-required
+
+// Members (admin)
+bot.Communities.BanMember(ctx, kappelas.BanCommunityMemberParams{CommunityID: 7, UserID: "u"})
+bot.Communities.Leave(ctx, kappelas.GetCommunityParams{CommunityID: 7})
+
+// Invite links (admin)
+inv, _ := bot.Communities.CreateInviteLink(ctx, kappelas.CreateCommunityInviteLinkParams{CommunityID: 7, MaxUses: 1, ExpiresIn: "24h"})
+bot.Communities.GetInviteLinks(ctx, kappelas.GetCommunityParams{CommunityID: 7})
+bot.Communities.RevokeInviteLink(ctx, kappelas.RevokeCommunityInviteLinkParams{CommunityID: 7, Code: inv.Code})
+bot.Communities.PreviewInvite(ctx, kappelas.CommunityInviteCodeParams{Code: "aBcD123"})
+bot.Communities.AcceptInvite(ctx, kappelas.CommunityInviteCodeParams{Code: "aBcD123"}) // bot joins via link
+
+// Join requests — user → community (admin, when RequiresApproval)
+reqs, _ := bot.Communities.GetJoinRequests(ctx, kappelas.GetCommunityParams{CommunityID: 7})
+bot.Communities.ApproveJoinRequest(ctx, kappelas.CommunityRequestActionParams{CommunityID: 7, RequestID: 3})
+bot.Communities.RejectJoinRequest(ctx, kappelas.CommunityRequestActionParams{CommunityID: 7, RequestID: 3})
+
+// Group requests + linking groups (admin)
+bot.Communities.GetGroupRequests(ctx, kappelas.GetCommunityParams{CommunityID: 7})
+bot.Communities.ApproveGroupRequest(ctx, kappelas.CommunityRequestActionParams{CommunityID: 7, RequestID: 3})
+bot.Communities.RejectGroupRequest(ctx, kappelas.CommunityRequestActionParams{CommunityID: 7, RequestID: 3})
+bot.Communities.AddGroup(ctx, kappelas.AddCommunityGroupParams{CommunityID: 7, ConversationID: 42})    // admin commu + admin group
+bot.Communities.RemoveGroup(ctx, kappelas.RemoveCommunityGroupParams{CommunityID: 7, ConversationID: 42})
 ```
 
 ---
