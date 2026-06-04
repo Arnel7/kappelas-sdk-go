@@ -1037,7 +1037,12 @@ me.Stories.Create(ctx, kappelas.CreateStoryParams{
     Type: kappelas.StoryText, Caption: "Privé",
     Audience: kappelas.StoryAudienceSelected, AudienceUserIDs: []string{"<uuid>"},
 })
+
+// Clickable CTA link over the story (text or image)
+me.Stories.Create(ctx, kappelas.CreateStoryParams{Type: kappelas.StoryText, Caption: "New drop", Link: "https://shop.example.com", LinkLabel: "Shop now"})
 ```
+
+> **Link (CTA)** — `Link` (+ optional `LinkLabel`) adds a clickable link shown over the story in the Kappela apps. The SDK carries it inside the caption as a JSON envelope (`{text, link, linkLabel}`); without a link the caption stays plain text.
 
 | Method | Returns | Description |
 |--------|---------|-------------|

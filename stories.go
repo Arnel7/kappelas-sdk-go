@@ -2,6 +2,7 @@ package kappelas
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 )
 
@@ -92,6 +93,12 @@ type CreateStoryParams struct {
 	// MediaID is an alternative to Media: an already-uploaded media id.
 	MediaID string
 	Caption string
+	// Link is a clickable CTA link shown over the story in the Kappela apps. When
+	// set, the SDK encodes the caption as a JSON envelope ({text, link, linkLabel})
+	// — the format the apps read (there is no separate backend field).
+	Link string
+	// LinkLabel is an optional label for the CTA link (e.g. "Shop now"). Requires Link.
+	LinkLabel string
 	// Audience is one of StoryAudienceAll (default), StoryAudienceSelected, StoryAudienceExcluded.
 	Audience string
 	// AudienceUserIDs is required when Audience is selected or excluded.
@@ -120,8 +127,20 @@ func (r *StoriesResource) Create(ctx context.Context, params CreateStoryParams) 
 	if mediaID != "" {
 		body["media_id"] = mediaID
 	}
-	if params.Caption != "" {
-		body["caption"] = params.Caption
+	caption := params.Caption
+	if params.Link != "" {
+		// Le lien CTA est porté dans la caption en JSON ({text, link, linkLabel}) —
+		// format lu par les apps Kappela (pas de champ backend dédié).
+		env := map[string]string{"text": params.Caption, "link": params.Link}
+		if params.LinkLabel != "" {
+			env["linkLabel"] = params.LinkLabel
+		}
+		if b, err := json.Marshal(env); err == nil {
+			caption = string(b)
+		}
+	}
+	if caption != "" {
+		body["caption"] = caption
 	}
 	if params.Audience != "" {
 		body["audience"] = params.Audience
