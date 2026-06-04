@@ -38,6 +38,7 @@ Build bots and personal automations — send messages, handle events, manage cha
   - [communities](#communities)
   - [webhooks](#webhooks)
   - [profile](#profile)
+  - [stories (User only)](#stories-user-only)
 - [Keyboards](#keyboards)
   - [Comparison](#comparison)
   - [Inline keyboard](#inline-keyboard--attached-to-the-message)
@@ -119,6 +120,17 @@ me.OnMessage(func(msg *kappelas.Message) {
 
 me.Start()
 select {}
+```
+
+**`User` exposes the same resources as `Bot`** — `me.Messages`, `me.Chats` (including member management and invite links), `me.Communities`, `me.Webhooks`, `me.Profile`, and `me.Reply()` — acting as yourself. In addition, `User` has [`me.Stories`](#stories-user-only) (user-only). Collections and Hugging Face credentials are bot-only.
+
+```go
+ctx := context.Background()
+me.Reply(ctx, msg, "Got it! 👋")
+me.Communities.Create(ctx, kappelas.CreateCommunityParams{Name: "Devs", RequiresApproval: true})
+
+// User-only: stories
+me.Stories.Create(ctx, kappelas.CreateStoryParams{Type: kappelas.StoryText, Caption: "Hello 👋"})
 ```
 
 ### Pausing automations
@@ -996,6 +1008,51 @@ profile, err := bot.Profile.Get(ctx)
 profile, err := me.Profile.Get(ctx)
 // → UserProfile{ID, Username, Nom, IsBot: false, IsPremium, AvatarURL, …}
 ```
+
+---
+
+### `stories` (User only)
+
+Create and manage **stories** (ephemeral, 24 h) via `me.Stories`. Available on `User` only — their audience is based on your private-conversation contacts.
+
+For **image/video** stories, set `Media` (a `*FileInput`) — the SDK uploads it automatically and uses the resulting media id. For **text/poll** stories, no upload is needed. You can also pass a pre-uploaded `MediaID`.
+
+```go
+ctx := context.Background()
+
+// Image story — SDK uploads the file, then creates the story
+img := kappelas.FileInput{Data: imgBytes, Filename: "photo.jpg", ContentType: "image/jpeg"}
+story, err := me.Stories.Create(ctx, kappelas.CreateStoryParams{
+    Type:    kappelas.StoryImage,
+    Media:   &img,
+    Caption: "Sunset 🌇",
+    Audience: kappelas.StoryAudienceAll, // "all" (default) | "selected" | "excluded"
+})
+
+// Text story — no media
+me.Stories.Create(ctx, kappelas.CreateStoryParams{Type: kappelas.StoryText, Caption: "Good morning ☀️"})
+
+// Restricted audience
+me.Stories.Create(ctx, kappelas.CreateStoryParams{
+    Type: kappelas.StoryText, Caption: "Privé",
+    Audience: kappelas.StoryAudienceSelected, AudienceUserIDs: []string{"<uuid>"},
+})
+```
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `Stories.Create(ctx, params)` | `(*Story, error)` | Create a story. `Media` (uploaded automatically) or `MediaID` for image/video; `Caption`, `Audience`, `AudienceUserIDs` optional. |
+| `Stories.UploadMedia(ctx, file)` | `(*StoryMediaUpload, error)` | Upload story media manually and get a media id (usually unnecessary). |
+| `Stories.List(ctx)` | `([]Story, error)` | Feed of your contacts' active stories. |
+| `Stories.ListMine(ctx)` | `([]Story, error)` | Your own stories. |
+| `Stories.Get(ctx, storyID)` | `(*Story, error)` | A single story (audience-checked server-side). |
+| `Stories.Delete(ctx, storyID)` | `(*StoryActionResult, error)` | Delete one of your stories. |
+| `Stories.View(ctx, storyID)` | `(*StoryActionResult, error)` | Mark a story as viewed. |
+| `Stories.GetViewers(ctx, storyID)` | `([]StoryView, error)` | Who viewed your story (owner only). |
+| `Stories.GetPreferences(ctx)` | `(*StoryPreferences, error)` | Your default audience preference. |
+| `Stories.SetPreferences(ctx, prefs)` | `(*StoryActionResult, error)` | Set your default audience preference. |
+
+> **Pause** — while automations are paused, story reads still work but creating/deleting/viewing stories is rejected with `AUTOMATIONS_PAUSED`.
 
 ---
 

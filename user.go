@@ -60,6 +60,10 @@ type User struct {
 	Webhooks *WebhooksResource
 	// Profile provides access to your own profile.
 	Profile *UserProfileResource
+	// Communities provides methods to manage communities (members, roles, invites, requests).
+	Communities *CommunitiesResource
+	// Stories provides methods to create and manage your stories (ephemeral, 24 h).
+	Stories *StoriesResource
 
 	http *httpClient
 	base string
@@ -93,13 +97,15 @@ func NewUser(apiKey string, opts ...UserOption) *User {
 	w := newWSClient(toWSURL(cfg.baseURL, wsPath), cfg.wsMaxRetries)
 
 	u := &User{
-		http:     h,
-		base:     base,
-		ws:       w,
-		Messages: &MessagesResource{http: h, base: base},
-		Chats:    &ChatsResource{http: h, base: base},
-		Webhooks: &WebhooksResource{http: h, base: base},
-		Profile:  &UserProfileResource{http: h, base: base},
+		http:        h,
+		base:        base,
+		ws:          w,
+		Messages:    &MessagesResource{http: h, base: base},
+		Chats:       &ChatsResource{http: h, base: base},
+		Webhooks:    &WebhooksResource{http: h, base: base},
+		Profile:     &UserProfileResource{http: h, base: base},
+		Communities: &CommunitiesResource{http: h, base: base},
+		Stories:     &StoriesResource{http: h, base: base},
 	}
 
 	w.onRaw = func(data []byte) { u.dispatchWire(data) }
@@ -239,6 +245,36 @@ func (u *User) PauseAutomationInChat(ctx context.Context, chatID int64) (*ChatAu
 // ResumeAutomationInChat resumes your personal automations in a conversation.
 func (u *User) ResumeAutomationInChat(ctx context.Context, chatID int64) (*ChatAutomationResult, error) {
 	return httpPost[*ChatAutomationResult](ctx, u.http, u.base+"/resumeAutomationInChat", map[string]any{"chat_id": chatID})
+}
+
+// Reply sends a text reply to a Message or CallbackQuery event.
+//   - When called with a *Message — sets ChatID and ReplyToID automatically (shows a quote banner).
+//   - When called with a *CallbackQuery — sets ChatID only (callback queries have no message ID).
+//
+// Pass an optional SendMessageParams to attach a keyboard or set other options.
+// ChatID, ReplyToID, and Text in opts are overwritten automatically.
+//
+// Example:
+//
+//	me.OnMessage(func(msg *kappelas.Message) {
+//	    me.Reply(context.Background(), msg, "Got it! 👋")
+//	})
+func (u *User) Reply(ctx context.Context, event any, text string, opts ...SendMessageParams) (*SendResult, error) {
+	p := SendMessageParams{Text: text}
+	if len(opts) > 0 {
+		p = opts[0]
+		p.Text = text
+	}
+	switch v := event.(type) {
+	case *Message:
+		p.ChatID = v.ChatID
+		p.ReplyToID = &v.ID
+	case *CallbackQuery:
+		p.ChatID = v.ChatID
+	default:
+		return nil, fmt.Errorf("kappelas: Reply: unsupported event type %T (expected *Message or *CallbackQuery)", event)
+	}
+	return u.Messages.Send(ctx, p)
 }
 
 // ─── Internal dispatch ───────────────────────────────────────────────────────
