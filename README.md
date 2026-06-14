@@ -361,6 +361,18 @@ bot := kappelas.NewBot("token",
 
 ### `messages`
 
+> **Recipient — `ChatID` or `UserID`.** Every send / edit / delete / typing method takes
+> **either** `ChatID` (int64) **or** `UserID` (string UUID). With `UserID` the message is
+> routed to your 1-to-1 private chat with that user — a **Bot** requires the conversation to
+> already exist (`FORBIDDEN` otherwise); a **User** creates it automatically (find-or-create).
+> Applies to `Send`, `SendPhoto`/`SendVideo`/`SendDocument`/`SendAudio`, `SendCarousel`,
+> `SendTyping`, `Edit` and `Delete` (for `Edit`/`Delete` the conversation must already exist).
+>
+> ```go
+> bot.Messages.Send(ctx, kappelas.SendMessageParams{UserID: "f19f2127-…", Text: "Hi"})
+> me.Messages.SendPhoto(ctx, kappelas.SendMediaParams{UserID: cb.SenderID, File: f})
+> ```
+
 #### `Messages.Send(ctx, params)` → `(*SendResult, error)`
 
 ```go
@@ -382,6 +394,31 @@ result, err := bot.Messages.Send(ctx, kappelas.SendMessageParams{
 ```
 
 Pass `DeletePrevious: true` to automatically remove the previous message from this bot in the same chat before sending.
+
+##### Action button
+
+`ActionButton` renders a single button at the **foot of the bubble** (WhatsApp-style),
+distinct from inline keyboards — it performs a client-side action instead of firing a
+`CallbackQuery`. Set it via `SendMessageParams.ActionButton` (text messages only). When
+both `ActionButton` and `ReplyMarkup` are set, `ActionButton` wins.
+
+```go
+// One-time code the user copies with a tap
+bot.Messages.Send(ctx, kappelas.SendMessageParams{
+    ChatID: 42,
+    Text:   "Your code is 837192",
+    ActionButton: &kappelas.ActionButton{Label: "Copy code", Type: "copy_text", Value: "837192"},
+})
+```
+
+| `Type` | What a tap does | `Value` is… |
+|--------|-----------------|-------------|
+| `copy_text` | Copies `Value` to the clipboard | The text to copy (e.g. an OTP) |
+| `external_link` | Opens `Value` in the in-app browser | An external URL |
+| `internal_link` | Opens `Value` as an in-app deep link | An internal Kappela link |
+| `join` | Joins the chat directly (no landing screen) | An invite link (group/channel/community) |
+
+`Label` is 1–100 characters, `Value` 1–2048.
 
 #### `Messages.SendPhoto(ctx, params)` → `(*SendMediaResult, error)`
 

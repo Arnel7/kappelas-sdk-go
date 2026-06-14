@@ -349,13 +349,42 @@ type EditMessageResult struct {
 // ─── Params ──────────────────────────────────────────────────────────────────
 
 // SendMessageParams holds the parameters for sending a text message.
+// ActionButtonType is what tapping an ActionButton does. The meaning of Value follows it:
+//
+//   - "copy_text"     — copies Value to the clipboard (e.g. a one-time code / OTP).
+//   - "external_link" — opens Value (an external URL) in the in-app browser.
+//   - "internal_link" — opens Value as an in-app deep link.
+//   - "join"          — Value is an invite link (group/channel/community); tap joins directly.
+type ActionButtonType = string
+
+// ActionButton is a single button rendered at the foot of the message bubble
+// (WhatsApp-style), distinct from inline keyboards. It performs a client-side
+// action (copy / open / join) instead of firing a callback_query.
+//
+// Set it via SendMessageParams.ActionButton. When both ActionButton and
+// ReplyMarkup are set, ActionButton takes precedence. Label: 1–100 chars,
+// Value: 1–2048 chars.
+type ActionButton struct {
+	Label string           `json:"label"`
+	Type  ActionButtonType `json:"type"` // copy_text | external_link | internal_link | join
+	Value string           `json:"value"`
+}
+
+// SendMessageParams holds the parameters for sending a text message.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID). With UserID the message is
+// routed to your 1-to-1 private chat with that user: for a Bot the conversation
+// must already exist (FORBIDDEN otherwise); for a User it is created if needed.
 type SendMessageParams struct {
-	ChatID    int64  `json:"chat_id"`
-	Text      string `json:"text"`
+	ChatID int64  `json:"chat_id,omitempty"`
+	UserID string `json:"user_id,omitempty"`
+	Text   string `json:"text"`
 	// ReplyMarkup accepts InlineKeyboard, ReplyKeyboard, or ScrollKeyboard.
-	ReplyMarkup    any    `json:"reply_markup,omitempty"`
-	ReplyToID      *int64 `json:"reply_to_id,omitempty"`
-	DeletePrevious bool   `json:"delete_previous,omitempty"`
+	ReplyMarkup any `json:"reply_markup,omitempty"`
+	// ActionButton renders a copy/link/join button at the foot of the bubble.
+	ActionButton   *ActionButton `json:"action_button,omitempty"`
+	ReplyToID      *int64        `json:"reply_to_id,omitempty"`
+	DeletePrevious bool          `json:"delete_previous,omitempty"`
 }
 
 // FileInput holds a file to be uploaded.
@@ -366,8 +395,11 @@ type FileInput struct {
 }
 
 // SendMediaParams holds the parameters for sending a photo, video, document, or audio.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID); see SendMessageParams.
 type SendMediaParams struct {
 	ChatID         int64
+	UserID         string
 	File           FileInput
 	Caption        string
 	ReplyToID      *int64
@@ -377,8 +409,11 @@ type SendMediaParams struct {
 }
 
 // SendCarouselParams holds the parameters for sending a product carousel.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID); see SendMessageParams.
 type SendCarouselParams struct {
-	ChatID            int64                  `json:"chat_id"`
+	ChatID            int64                  `json:"chat_id,omitempty"`
+	UserID            string                 `json:"user_id,omitempty"`
 	Text              string                 `json:"text,omitempty"`
 	Carousel          []CarouselCard         `json:"carousel"`
 	// QuickReplyButtons are shown as chips below the carousel.
@@ -390,23 +425,33 @@ type SendCarouselParams struct {
 
 // SendTypingParams holds the parameters for the typing indicator.
 // IsTyping defaults to true when nil (show indicator). Set to false to hide it.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID); see SendMessageParams.
 type SendTypingParams struct {
-	ChatID   int64 `json:"chat_id"`
-	IsTyping *bool `json:"is_typing,omitempty"`
+	ChatID   int64  `json:"chat_id,omitempty"`
+	UserID   string `json:"user_id,omitempty"`
+	IsTyping *bool  `json:"is_typing,omitempty"`
 }
 
 // EditMessageParams holds the parameters for editing a message.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID). With UserID the private
+// conversation must already exist (you are editing an existing message).
 type EditMessageParams struct {
-	ChatID       int64           `json:"chat_id"`
+	ChatID       int64           `json:"chat_id,omitempty"`
+	UserID       string          `json:"user_id,omitempty"`
 	MessageID    int64           `json:"message_id"`
 	NewText      string          `json:"new_text,omitempty"`
 	NewExtraData json.RawMessage `json:"new_extra_data,omitempty"`
 }
 
 // DeleteMessageParams holds the parameters for deleting a message.
+//
+// Recipient — set EITHER ChatID OR UserID (UUID); the conversation must exist.
 type DeleteMessageParams struct {
-	ChatID    int64 `json:"chat_id"`
-	MessageID int64 `json:"message_id"`
+	ChatID    int64  `json:"chat_id,omitempty"`
+	UserID    string `json:"user_id,omitempty"`
+	MessageID int64  `json:"message_id"`
 }
 
 // SetWebhookParams holds the parameters for registering a webhook.

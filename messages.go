@@ -44,8 +44,12 @@ func (r *MessagesResource) sendMedia(ctx context.Context, endpoint, fieldName st
 		data:        params.File.Data,
 	}
 
-	fields := map[string]string{
-		"chat_id": int64Field(params.ChatID),
+	fields := map[string]string{}
+	// Recipient — chat_id takes priority; otherwise route to the user's private chat.
+	if params.ChatID != 0 {
+		fields["chat_id"] = int64Field(params.ChatID)
+	} else if params.UserID != "" {
+		fields["user_id"] = params.UserID
 	}
 	if params.Caption != "" {
 		fields["caption"] = params.Caption
@@ -79,10 +83,14 @@ func (r *MessagesResource) SendTyping(ctx context.Context, params SendTypingPara
 	if params.IsTyping != nil {
 		isTyping = *params.IsTyping
 	}
-	return httpPost[*TypingResult](ctx, r.http, r.base+"/sendTyping", map[string]any{
-		"chat_id":   params.ChatID,
-		"is_typing": isTyping,
-	})
+	body := map[string]any{"is_typing": isTyping}
+	// Recipient — chat_id takes priority; otherwise route to the user's private chat.
+	if params.ChatID != 0 {
+		body["chat_id"] = params.ChatID
+	} else if params.UserID != "" {
+		body["user_id"] = params.UserID
+	}
+	return httpPost[*TypingResult](ctx, r.http, r.base+"/sendTyping", body)
 }
 
 // Edit edits the text or inline keyboard of a message sent by this bot or user.
