@@ -313,6 +313,16 @@ type SendCarouselResult struct {
 	Type      string `json:"type"`
 }
 
+// FileInfo describes a media file and a short-lived signed download URL.
+type FileInfo struct {
+	MediaID     string `json:"media_id"`
+	URL         string `json:"url"`
+	Filename    string `json:"filename"`
+	ContentType string `json:"content_type"`
+	SizeBytes   int64  `json:"size_bytes"`
+	ExpiresIn   int    `json:"expires_in"`
+}
+
 // ChatsResult is the paginated response from the list chats endpoint.
 type ChatsResult struct {
 	Chats   []Chat `json:"chats"`

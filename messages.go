@@ -3,6 +3,10 @@ package kappelas
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 )
 
 // MessagesResource provides methods to send and manage messages.
@@ -101,4 +105,33 @@ func (r *MessagesResource) Edit(ctx context.Context, params EditMessageParams) (
 // Delete deletes a message sent by this bot or user.
 func (r *MessagesResource) Delete(ctx context.Context, params DeleteMessageParams) (*DeleteResult, error) {
 	return httpPost[*DeleteResult](ctx, r.http, r.base+"/deleteMessage", params)
+}
+
+// GetFile returns metadata and a short-lived signed download URL for a media file.
+func (r *MessagesResource) GetFile(ctx context.Context, mediaID string) (*FileInfo, error) {
+	return httpGet[*FileInfo](ctx, r.http, r.base+"/getFile?media_id="+url.QueryEscape(mediaID))
+}
+
+// DownloadFile resolves a media file's signed URL via GetFile and downloads its bytes.
+func (r *MessagesResource) DownloadFile(ctx context.Context, mediaID string) ([]byte, error) {
+	info, err := r.GetFile(ctx, mediaID)
+	if err != nil {
+		return nil, err
+	}
+	if info.URL == "" {
+		return nil, fmt.Errorf("no download URL for media %s", mediaID)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, info.URL, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := r.http.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("downloading file: HTTP %d", resp.StatusCode)
+	}
+	return io.ReadAll(resp.Body)
 }

@@ -497,6 +497,35 @@ bot.Messages.Delete(ctx, kappelas.DeleteMessageParams{ChatID: 42, MessageID: 123
 // → DeleteResult{Deleted: true}
 ```
 
+#### `Messages.GetFile(ctx, mediaID)` → `(*FileInfo, error)`
+
+Resolves a media ID (from a received message's `MediaID`) into metadata and a
+short-lived signed download URL. The URL is a direct file download — no auth
+header required.
+
+```go
+info, err := bot.Messages.GetFile(ctx, "b1e2c3d4-...")
+// → FileInfo{MediaID, URL, Filename, ContentType, SizeBytes, ExpiresIn}
+fmt.Println(info.Filename, info.ContentType, info.SizeBytes)
+```
+
+#### `Messages.DownloadFile(ctx, mediaID)` → `([]byte, error)`
+
+Convenience wrapper that calls `GetFile` and downloads the file bytes for you.
+
+```go
+// Download a received voice note
+bot.OnMessage(func(msg *kappelas.Message) {
+    if msg.Type == kappelas.MessageTypeAudio && msg.MediaID != nil {
+        data, err := bot.Messages.DownloadFile(ctx, *msg.MediaID)
+        if err != nil {
+            return
+        }
+        os.WriteFile("voice-note.ogg", data, 0o644)
+    }
+})
+```
+
 ---
 
 ### `chats`
