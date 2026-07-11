@@ -40,7 +40,30 @@ func (r *MessagesResource) SendAudio(ctx context.Context, params SendMediaParams
 	return r.sendMedia(ctx, "/sendAudio", "audio", params)
 }
 
+// pingTyping fires a best-effort "typing" indicator toward the media
+// recipient so they see activity while a potentially slow upload runs.
+// It is fire-and-forget: it runs in its own goroutine on a detached context
+// and never blocks or affects the outcome of the media send.
+func (r *MessagesResource) pingTyping(params SendMediaParams) {
+	isTyping := true
+	tp := SendTypingParams{IsTyping: &isTyping}
+	// Recipient — chat_id takes priority; otherwise route to the user's private chat.
+	if params.ChatID != 0 {
+		tp.ChatID = params.ChatID
+	} else if params.UserID != "" {
+		tp.UserID = params.UserID
+	} else {
+		return
+	}
+	go func() {
+		defer func() { _ = recover() }()
+		_, _ = r.SendTyping(context.Background(), tp)
+	}()
+}
+
 func (r *MessagesResource) sendMedia(ctx context.Context, endpoint, fieldName string, params SendMediaParams) (*SendMediaResult, error) {
+	r.pingTyping(params)
+
 	ff := formFile{
 		fieldName:   fieldName,
 		filename:    params.File.Filename,
