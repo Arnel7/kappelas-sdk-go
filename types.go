@@ -59,8 +59,8 @@ type ReplySnapshot struct {
 
 // Message represents a Kappela chat message.
 type Message struct {
-	ID        int64   `json:"id"`
-	ChatID    int64   `json:"chat_id"`
+	ID     int64 `json:"id"`
+	ChatID int64 `json:"chat_id"`
 	// ChatType is the type of conversation ("private", "group", "channel").
 	// Always present on WS and webhook events; may be absent on history API results.
 	ChatType        *ChatType       `json:"chat_type,omitempty"`
@@ -271,8 +271,8 @@ type WebhookInfo struct {
 
 // CallbackQuery is fired when a user clicks an inline button.
 type CallbackQuery struct {
-	ChatID         int64   `json:"chat_id"`
-	SenderID       string  `json:"sender_id"`
+	ChatID   int64  `json:"chat_id"`
+	SenderID string `json:"sender_id"`
 	// SenderName is the display name of the user who clicked (e.g. "Arnel LAWSON").
 	SenderName     *string `json:"sender_name"`
 	SenderUsername *string `json:"sender_username"`
@@ -422,10 +422,10 @@ type SendMediaParams struct {
 //
 // Recipient — set EITHER ChatID OR UserID (UUID); see SendMessageParams.
 type SendCarouselParams struct {
-	ChatID            int64                  `json:"chat_id,omitempty"`
-	UserID            string                 `json:"user_id,omitempty"`
-	Text              string                 `json:"text,omitempty"`
-	Carousel          []CarouselCard         `json:"carousel"`
+	ChatID   int64          `json:"chat_id,omitempty"`
+	UserID   string         `json:"user_id,omitempty"`
+	Text     string         `json:"text,omitempty"`
+	Carousel []CarouselCard `json:"carousel"`
 	// QuickReplyButtons are shown as chips below the carousel.
 	// Accepts short form {Text: "label"} or long form {Text: "label", CallbackData: "value"}.
 	QuickReplyButtons []ScrollKeyboardButton `json:"quick_reply_buttons,omitempty"`
@@ -441,6 +441,10 @@ type SendTypingParams struct {
 	ChatID   int64  `json:"chat_id,omitempty"`
 	UserID   string `json:"user_id,omitempty"`
 	IsTyping *bool  `json:"is_typing,omitempty"`
+	// Action refines the indicator shown to the recipient, e.g.
+	// "recording_audio", "sending_photo", "sending_video", "sending_document".
+	// Empty means the plain "typing…" indicator.
+	Action string `json:"action,omitempty"`
 }
 
 // EditMessageParams holds the parameters for editing a message.
@@ -521,8 +525,8 @@ type LeaveChatResult struct {
 // PromoteChatMemberParams holds the parameters for changing a member's role.
 // The bot must be admin.
 type PromoteChatMemberParams struct {
-	ChatID int64           `json:"chat_id"`
-	UserID string          `json:"user_id"`
+	ChatID int64  `json:"chat_id"`
+	UserID string `json:"user_id"`
 	// Role: ParticipantRoleAdmin promotes, ParticipantRoleMember demotes.
 	Role ParticipantRole `json:"role"`
 }

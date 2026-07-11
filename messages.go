@@ -22,31 +22,32 @@ func (r *MessagesResource) Send(ctx context.Context, params SendMessageParams) (
 
 // SendPhoto sends a photo (image file).
 func (r *MessagesResource) SendPhoto(ctx context.Context, params SendMediaParams) (*SendMediaResult, error) {
-	return r.sendMedia(ctx, "/sendPhoto", "photo", params)
+	return r.sendMedia(ctx, "/sendPhoto", "photo", "sending_photo", params)
 }
 
 // SendVideo sends a video file.
 func (r *MessagesResource) SendVideo(ctx context.Context, params SendMediaParams) (*SendMediaResult, error) {
-	return r.sendMedia(ctx, "/sendVideo", "video", params)
+	return r.sendMedia(ctx, "/sendVideo", "video", "sending_video", params)
 }
 
 // SendDocument sends a document or generic file.
 func (r *MessagesResource) SendDocument(ctx context.Context, params SendMediaParams) (*SendMediaResult, error) {
-	return r.sendMedia(ctx, "/sendDocument", "document", params)
+	return r.sendMedia(ctx, "/sendDocument", "document", "sending_document", params)
 }
 
 // SendAudio sends an audio file.
 func (r *MessagesResource) SendAudio(ctx context.Context, params SendMediaParams) (*SendMediaResult, error) {
-	return r.sendMedia(ctx, "/sendAudio", "audio", params)
+	return r.sendMedia(ctx, "/sendAudio", "audio", "recording_audio", params)
 }
 
 // pingTyping fires a best-effort "typing" indicator toward the media
 // recipient so they see activity while a potentially slow upload runs.
 // It is fire-and-forget: it runs in its own goroutine on a detached context
-// and never blocks or affects the outcome of the media send.
-func (r *MessagesResource) pingTyping(params SendMediaParams) {
+// and never blocks or affects the outcome of the media send. The action
+// (e.g. "sending_photo") tailors the indicator to the media type.
+func (r *MessagesResource) pingTyping(action string, params SendMediaParams) {
 	isTyping := true
-	tp := SendTypingParams{IsTyping: &isTyping}
+	tp := SendTypingParams{IsTyping: &isTyping, Action: action}
 	// Recipient — chat_id takes priority; otherwise route to the user's private chat.
 	if params.ChatID != 0 {
 		tp.ChatID = params.ChatID
@@ -61,8 +62,8 @@ func (r *MessagesResource) pingTyping(params SendMediaParams) {
 	}()
 }
 
-func (r *MessagesResource) sendMedia(ctx context.Context, endpoint, fieldName string, params SendMediaParams) (*SendMediaResult, error) {
-	r.pingTyping(params)
+func (r *MessagesResource) sendMedia(ctx context.Context, endpoint, fieldName, action string, params SendMediaParams) (*SendMediaResult, error) {
+	r.pingTyping(action, params)
 
 	ff := formFile{
 		fieldName:   fieldName,
@@ -116,6 +117,9 @@ func (r *MessagesResource) SendTyping(ctx context.Context, params SendTypingPara
 		body["chat_id"] = params.ChatID
 	} else if params.UserID != "" {
 		body["user_id"] = params.UserID
+	}
+	if params.Action != "" {
+		body["action"] = params.Action
 	}
 	return httpPost[*TypingResult](ctx, r.http, r.base+"/sendTyping", body)
 }
