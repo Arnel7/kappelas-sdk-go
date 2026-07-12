@@ -463,8 +463,20 @@ bot.Messages.Edit(ctx, kappelas.EditMessageParams{
     ChatID: 42, MessageID: 123, NewText: "Mis à jour !",
 })
 
-// Edit inline keyboard only (keep existing text)
 import "encoding/json"
+
+// Edit text AND inline keyboard together — ex. un menu qui se coche au clic
+yes, no := "yes", "no"
+kbBoth, _ := json.Marshal(kappelas.InlineKeyboard{
+    InlineKeyboard: [][]kappelas.InlineKeyboardButton{
+        {{Text: "✅ Oui ✓", CallbackData: &yes}, {Text: "❌ Non", CallbackData: &no}},
+    },
+})
+bot.Messages.Edit(ctx, kappelas.EditMessageParams{
+    ChatID: 42, MessageID: 123, NewText: "Tu as choisi : ✅ Oui", NewExtraData: kbBoth,
+})
+
+// Edit inline keyboard only (omit NewText to keep the existing text)
 done := "done"
 kb, _ := json.Marshal(kappelas.InlineKeyboard{
     InlineKeyboard: [][]kappelas.InlineKeyboardButton{
