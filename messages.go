@@ -20,6 +20,14 @@ func (r *MessagesResource) Send(ctx context.Context, params SendMessageParams) (
 	return httpPost[*SendResult](ctx, r.http, r.base+"/sendMessage", params)
 }
 
+// CloseWebview remotely closes the in-app WebView opened by an "open_webview" action button on
+// the recipient's device(s). Use it when the outcome is confirmed server-side (e.g. a payment
+// webhook) instead of relying on the web page calling Kappelas.close(). The event reaches all of
+// the recipient's connected devices (personal real-time channel).
+func (r *MessagesResource) CloseWebview(ctx context.Context, params CloseWebviewParams) (*CloseWebviewResult, error) {
+	return httpPost[*CloseWebviewResult](ctx, r.http, r.base+"/closeWebview", params)
+}
+
 // SendPhoto sends a photo (image file).
 func (r *MessagesResource) SendPhoto(ctx context.Context, params SendMediaParams) (*SendMediaResult, error) {
 	return r.sendMedia(ctx, "/sendPhoto", "photo", "sending_photo", params)

@@ -350,6 +350,18 @@ type WebhookDeleteResult struct {
 	Active bool `json:"active"`
 }
 
+// CloseWebviewParams holds the parameters for MessagesResource.CloseWebview.
+type CloseWebviewParams struct {
+	// ChatID is the conversation whose recipient(s) should have their in-app WebView closed.
+	ChatID int64 `json:"chat_id"`
+}
+
+// CloseWebviewResult is returned after a remote WebView close. Sent = recipients notified.
+type CloseWebviewResult struct {
+	Ok   bool `json:"ok"`
+	Sent int  `json:"sent"`
+}
+
 // EditMessageResult is returned after editing a message.
 type EditMessageResult struct {
 	Edited    bool  `json:"edited"`
@@ -362,9 +374,11 @@ type EditMessageResult struct {
 // ActionButtonType is what tapping an ActionButton does. The meaning of Value follows it:
 //
 //   - "copy_text"     — copies Value to the clipboard (e.g. a one-time code / OTP).
-//   - "external_link" — opens Value (an external URL) in the in-app browser.
+//   - "external_link" — opens Value (an external URL) in the system browser (leaves the app).
 //   - "internal_link" — opens Value as an in-app deep link.
 //   - "join"          — Value is an invite link (group/channel/community); tap joins directly.
+//   - "open_webview"  — opens Value (URL) in an in-app WebView (stays inside Kappelas). Ideal for
+//     payments: the page can close itself via Kappelas.close(), or close it remotely with CloseWebview.
 type ActionButtonType = string
 
 // ActionButton is a single button rendered at the foot of the message bubble
