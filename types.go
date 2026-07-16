@@ -394,6 +394,32 @@ type ActionButton struct {
 	Value string           `json:"value"`
 }
 
+// FormInput is the input kind of a FormField: "single", "multi", "ranking" or "text".
+type FormInput = string
+
+// FormField is one field of an interactive Form card.
+//   - single/multi/ranking need Options (2–12 short labels).
+//   - text needs no options; Placeholder is an optional hint.
+type FormField struct {
+	Label       string    `json:"label"`
+	Input       FormInput `json:"input"` // single | multi | ranking | text
+	Options     []string  `json:"options,omitempty"`
+	ID          string    `json:"id,omitempty"` // stable key in the answers; auto-assigned if empty
+	Required    bool      `json:"required,omitempty"`
+	Placeholder string    `json:"placeholder,omitempty"`
+}
+
+// Form is an interactive form card sent inside a message (choices, ranking, free text) with a
+// submit button. The recipient fills it and taps submit; the answers come back as a callback_query
+// whose CallbackData is "form::<json>" where <json> is {"form_id":...,"answers":{<field id>:[...]}}.
+// Set it via SendMessageParams.Form. Works in private and group chats. Takes precedence over
+// ReplyMarkup and ActionButton. Title ≤ 512 chars, 1–10 Fields.
+type Form struct {
+	Title       string      `json:"title"`
+	Fields      []FormField `json:"fields"`
+	SubmitLabel string      `json:"submit_label,omitempty"`
+}
+
 // SendMessageParams holds the parameters for sending a text message.
 //
 // Recipient — set EITHER ChatID OR UserID (UUID). With UserID the message is
@@ -406,9 +432,12 @@ type SendMessageParams struct {
 	// ReplyMarkup accepts InlineKeyboard, ReplyKeyboard, or ScrollKeyboard.
 	ReplyMarkup any `json:"reply_markup,omitempty"`
 	// ActionButton renders a copy/link/join button at the foot of the bubble.
-	ActionButton   *ActionButton `json:"action_button,omitempty"`
-	ReplyToID      *int64        `json:"reply_to_id,omitempty"`
-	DeletePrevious bool          `json:"delete_previous,omitempty"`
+	ActionButton *ActionButton `json:"action_button,omitempty"`
+	// Form renders an interactive form card (choices / ranking / free text + submit).
+	// Answers return as a callback_query (CallbackData = "form::<json>"). Takes precedence.
+	Form           *Form  `json:"form,omitempty"`
+	ReplyToID      *int64 `json:"reply_to_id,omitempty"`
+	DeletePrevious bool   `json:"delete_previous,omitempty"`
 }
 
 // FileInput holds a file to be uploaded.
